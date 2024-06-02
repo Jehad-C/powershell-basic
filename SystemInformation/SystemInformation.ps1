@@ -1,45 +1,69 @@
-﻿# Set workspace directory
-$WORKSPACE = "$HOME\workspace"
+param(
+    [string]$LogPath = "$HOME\workspace\logs\SystemInformation.log"
+)
 
-if (!(Test-Path -Path $WORKSPACE)) {
-    New-Item -Path $HOME -ItemType Directory -Name workspace | Out-Null
+function Get-SystemInformation {
+    try {
+        $properties = @(
+            'CsName',
+            'WindowsVersion',
+            'WindowsBuildLabEx',
+            'CsManufacturer',
+            'CsModel',
+            'CsProcessors',
+            'CsTotalPhysicalMemory',
+            'BiosVersion',
+            'BiosReleaseDate'
+        )
+
+        $computerInfo = Get-ComputerInfo -Property $properties
+        return $computerInfo
+    } catch {
+        Write-Host 'Failed to retrieved system information'
+        return $null
+    }
 }
 
-Set-Location $WORKSPACE
+function Generate-Log {
+    param(
+        [PSCustomObject]$SystemInformation,
+        [string]$LogPath
+    )
 
-try {
-    # Get system information
-    $computerInfo = Get-ComputerInfo -Property `
-        CsName, `
-        WindowsVersion, `
-        WindowsBuildLabEx, `
-        CsManufacturer, `
-        CsModel, `
-        CsProcessors, `
-        CsTotalPhysicalMemory, `
-        BiosVersion, `
-        BiosReleaseDate
+    $logDir = Split-Path -Path $LogPath -Parent
+    New-Item -Path $logDir -ItemType Directory -Force | Out-Null
+    if (Test-Path -Path $LogPath) {
+        Remove-Item -Path $LogPath -Confirm:$false
+    }
 
-    $physicalMemory = "$([Math]::Round($computerInfo.CsTotalPhysicalMemory / 1GB, 2)) GB"
+    $physicalMemory = "$([Math]::Round($SystemInformation.CsTotalPhysicalMemory / 1GB, 2)) GB"
 
-    $systemInfo = @"
-Computer Name: $($computerInfo.CsName)
-OS Version: $($computerInfo.WindowsVersion)
-OS Build: $($computerInfo.WindowsBuildLabEx)
-Manufacturer: $($computerInfo.CsManufacturer)
-Model: $($computerInfo.CsModel)
-Processor: $($computerInfo.CsProcessors)
-Total Physical Memory: $physicalMemory
-Bios Version: $($computerInfo.BiosVersion)
-Bios Release Date: $($computerInfo.BiosReleaseDate)
-"@
+    $logContent = @()
+    $logContent += "********************"
+    $logContent += "System Information"
+    $logContent += "********************"
+    $logContent += "`n--- Computer Information ---"
+    $logContent += "Computer Name: $($SystemInformation.CsName)"
+    $logContent += "Manufacturer: $($SystemInformation.CsManufacturer)"
+    $logContent += "Model: $($SystemInformation.CsModel)"
+    $logContent += "Processor: $($SystemInformation.CsProcessors)"
+    $logContent += "Total Physical Memory: $physicalMemory"
+    $logContent += "`n--- Operating System Information ---"
+    $logContent += "OS Version: $($SystemInformation.WindowsVersion)"
+    $logContent += "OS Build: $($SystemInformation.WindowsBuildLabEx)"
+    $logContent += "`n--- Bios Information ---"
+    $logContent += "Bios Version: $($SystemInformation.BiosVersion)"
+    $logContent += "Bios Release Date: $($SystemInformation.BiosReleaseDate)"
 
-    $filePath = Join-Path -Path $WORKSPACE -ChildPath 'system_info.txt'
+    try {
+        $logContent | Out-File -FilePath $LogPath
+        Write-Host 'Successfully logged system information'
+    } catch {
+        Write-Host 'Failed to logged system information'
+    }
+}
 
-    # Write system information to text file
-    $systemInfo | Out-File -FilePath $filePath
-
-    Write-Output "System information saved to: $filePath"
-} catch {
-    Write-Output "Failed to retrieve system information. Details: $_"
+$systemInformation = Get-SystemInformation
+if ($systemInformation) {
+    Generate-Log -SystemInformation $systemInformation -LogPath $LogPath
 }
