@@ -33,10 +33,10 @@ function Generate-Log {
         [string]$LogPath                    # Path to save the log file
     )
 
-    $logDir = Split-Path -Path $LogPath -Parent
+    $logDirectory = Split-Path -Path $LogPath -Parent
 
     # Ensure log directory exists, Remove existing log file if it exists
-    New-Item -Path $logDir -ItemType Directory -Force | Out-Null
+    New-Item -Path $logDirectory -ItemType Directory -Force | Out-Null
     if (Test-Path -Path $LogPath) {
         Remove-Item -Path $LogPath -Confirm:$false
     }
