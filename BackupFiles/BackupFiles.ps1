@@ -3,7 +3,7 @@
     [string]$BackupDirectory = "$HOME\workspace\backup"  # Default backup directory
 )
 
-# Function to retrieved files
+# Function to retrieved files from the source directory
 function Get-Files {
     param(
         [string]$SourceDirectory, # Source directory
@@ -13,11 +13,11 @@ function Get-Files {
     # Ensure source directory exists
     New-Item -Path $SourceDirectory -ItemType Directory -Force | Out-Null
     try {
-        # Retrieved files
+        # Retrieve files excluding the backup directory
         $files = Get-ChildItem -Path $SourceDirectory -Recurse | Where-Object { $_.FullName -notlike "$BackupDirectory" }
         return $files
     } catch {
-        Write-Host "Failed to retrieved files"
+        Write-Host "Failed to retrieve files"
         return $null
     }
 }
