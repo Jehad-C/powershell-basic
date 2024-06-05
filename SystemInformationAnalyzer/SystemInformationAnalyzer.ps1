@@ -21,6 +21,7 @@ function Get-SystemInformation {
         $computerInfo = Get-ComputerInfo -Property $properties
         return $computerInfo
     } catch {
+        # Handle potential errors during system information retrieval
         Write-Host 'Failed to retrieved system information'
         return $null
     }
@@ -66,7 +67,7 @@ function Generate-Log {
         $logContent | Out-File -FilePath $LogPath
         Write-Host 'Successfully logged system information'
     } catch {
-        # Handle potential errors during system information retrieval 
+        # Handle potential errors during system information logging 
         Write-Host 'Failed to logged system information'
     }
 }
