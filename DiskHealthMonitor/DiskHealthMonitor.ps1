@@ -1,12 +1,12 @@
 param(
-    [int]$FreeSpacePercentageThreshold = "25",                         # Default free space percentage threshold
-    [string]$LogPath = "$HOME\workspace\logs\DiskSpaceInformation.log" # Default log path
+    [int]$FreeSpacePercentageThreshold = "25",                          # Default free space percentage threshold
+    [string]$LogPath = "$HOME\workspace\logs\DiskHealthInformation.log" # Default log path
 )
 
 # Function to retrieve disk information
 function Get-DiskInformation {
     param(
-        [int]$FreeSpacePercentageThreshold # free space percentage threshold
+        [int]$FreeSpacePercentageThreshold # Free space percentage threshold
     )
 
     try {
@@ -40,8 +40,8 @@ function Get-DiskInformation {
 # Function to generate a log file with disk information
 function Generate-Log {
     param(
-        [PSCustomObject]$DiskInformation,      # Disk information object
-        [string]$LogPath                       # Path to save the log file
+        [array]$DiskInformation, # Disk information object
+        [string]$LogPath         # Path to save the log file
     )
 
     $logDirectory = Split-Path -Path $LogPath -Parent
