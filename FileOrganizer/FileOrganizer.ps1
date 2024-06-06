@@ -1,27 +1,70 @@
-﻿# Set source and destination directory
-param(
-    [string]$SrcDirectory="$HOME\workspace\source",
-    [string]$DstDirectory="$HOME\workspace\destination"
+﻿param(
+    [string]$SourceDirectory = "$HOME\workspace\source",          # Default source directory
+    [string]$DestinationDirectory = "$HOME\workspace\destination" # Default destination directory
 )
 
-New-Item -Path $SrcDirectory -ItemType Directory -Force | Out-Null
-New-Item -Path $DstDirectory -ItemType Directory -Force | Out-Null
+# Function to retrieve files from the source directory
+function Get-Files {
+    param(
+        [string]$SourceDirectory,      # Source directory
+        [string]$DestinationDirectory  # Destination directory
+    )
 
-# Get all files in the source directory
-$files = Get-ChildItem -Path $SrcDirectory -Recurse | Where-Object { $_.FullName -notlike "$DstDirectory*" }
+    # Ensure the source directory exists
+    New-Item -Path $SourceDirectory -ItemType Directory -Force | Out-Null
 
-# Organize files to the destination directory
-foreach ($file in $files) {
-    if ($file.PSIsContainer) {
-        continue
+    try {
+        # Retrieve files, excluding the destination directory
+        $files = Get-ChildItem -Path $SourceDirectory -Recurse | Where-Object { $_.FullName -notlike "$DestinationDirectory" }
+        return $files
+    } catch {
+        # Handle potential errors during file retrieval
+        Write-Host "Failed to retrieve files"
+        return $null
     }
+}
 
-    $extension = $file.Extension.TrimStart('.')
-    $dstSubDirectory = Join-Path -Path $DstDirectory -ChildPath $extension
+# Function to organize files from the source directory to the destination directory
+function Organize-Files {
+    param(
+        [array]$Files,                # Array of files to organize
+        [string]$SourceDirectory,     # Source directory
+        [string]$DestinationDirectory # Destination directory
+    )
 
-    New-Item -Path $dstSubDirectory -ItemType Directory -Force | Out-Null
+    # Ensure the destination directory exists
+    New-Item -Path $DestinationDirectory -ItemType Directory -Force | Out-Null
 
-    $dstPath = Join-Path -Path $dstSubDirectory -ChildPath $file.Name
+    try {
+        foreach ($file in $Files) {
+            # Skip folders
+            if ($file.PSIsContainer) {
+                continue
+            }
 
-    Copy-Item -Path $file.FullName -Destination $dstPath -Force
+            $relativePath = $file.FullName.Substring($SourceDirectory.Length).TrimStart('\')
+            $extension = $file.Extension.TrimStart('.')
+            $destinationSubDirectory = Join-Path -Path $DestinationDirectory -ChildPath $extension
+            $destinationPath = Join-Path -Path $destinationSubDirectory -ChildPath $relativePath
+
+            # Ensure the destination subdirectory exists
+            New-Item -Path $destinationSubDirectory -ItemType Directory -Force | Out-Null
+
+
+            # Copy the file
+            Copy-Item -Path $file.FullName -Destination $destinationPath -Force
+        }
+
+        Write-Host "Successfully organized files"
+    } catch {
+        # Handle potential errors during file copying
+        Write-Host "Failed to organize files"
+    }
+}
+
+# Main script execution
+# Retrieve files from the source directory and organize them if successful
+$files = Get-Files -SourceDirectory $SourceDirectory -DestinationDirectory $DestinationDirectory
+if ($files) {
+    Organize-Files -Files $files -SourceDirectory $SourceDirectory -DestinationDirectory $DestinationDirectory
 }
