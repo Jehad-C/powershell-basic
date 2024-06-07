@@ -22,7 +22,7 @@ function Get-SystemInformation {
         return $computerInfo
     } catch {
         # Handle potential errors during system information retrieval
-        Write-Host 'Failed to retrieved system information'
+        Write-Host 'Failed to retrieve system information'
         return $null
     }
 }
@@ -30,8 +30,11 @@ function Get-SystemInformation {
 # Function to generate a log file with system information
 function Generate-Log {
     param(
-        [PSCustomObject]$SystemInformation, # System information object
-        [string]$LogPath                    # Path to save the log file
+        [Parameter(Mandatory=$true)]
+        [array]$SystemInformation, # System information object
+
+        [Parameter(Mandatory=$true)]
+        [string]$LogPath           # Path to save the log file
     )
 
     $logDirectory = Split-Path -Path $LogPath -Parent
@@ -68,7 +71,7 @@ function Generate-Log {
         Write-Host 'Successfully logged system information'
     } catch {
         # Handle potential errors during system information logging 
-        Write-Host 'Failed to logged system information'
+        Write-Host 'Failed to log system information'
     }
 }
 
