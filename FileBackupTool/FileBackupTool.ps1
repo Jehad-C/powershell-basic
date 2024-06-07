@@ -3,20 +3,25 @@
     [string]$BackupDirectory = "$HOME\workspace\backup"  # Default backup directory
 )
 
-# Function to retrieved files from the source directory
+# Function to retrieve files from the source directory
 function Get-Files {
     param(
+        [Parameter(Mandatory=$true)]
         [string]$SourceDirectory, # Source directory
+
+        [Parameter(Mandatory=$true)]
         [string]$BackupDirectory  # Backup directory
     )
 
     # Ensure source directory exists
     New-Item -Path $SourceDirectory -ItemType Directory -Force | Out-Null
+
     try {
         # Retrieve files excluding the backup directory
         $files = Get-ChildItem -Path $SourceDirectory -Recurse | Where-Object { $_.FullName -notlike "$BackupDirectory" }
         return $files
     } catch {
+        # Handle potential errors during files retrieval
         Write-Host "Failed to retrieve files"
         return $null
     }
@@ -25,9 +30,14 @@ function Get-Files {
 # Function to backup files
 function Process-BackupFiles {
     param(
+        [Parameter(Mandatory=$true)]
+        [array]$Files,            # Array of files to backup
+
+        [Parameter(Mandatory=$true)]
         [string]$SourceDirectory, # Source directory
-        [string]$BackupDirectory, # Backup directory
-        [array]$Files             # Array of files to backup
+
+        [Parameter(Mandatory=$true)]
+        [string]$BackupDirectory  # Backup directory
     )
 
     # Ensure backup directory exists
@@ -51,8 +61,8 @@ function Process-BackupFiles {
                 Copy-Item -Path $file.FullName -Destination $destinationPath -Force
                 Write-Output "Successfully backed up file"
             } catch {
-                # Handle potential errors during back up 
-                Write-Output "Failed to back up file"
+                # Handle potential errors during file backup 
+                Write-Output "Failed to backup file"
             }
         }
     }
@@ -66,5 +76,5 @@ function Process-BackupFiles {
 # Retrieve files from the source directory and backup if successful
 $files = Get-Files -SourceDirectory $SourceDirectory -BackupDirectory $BackupDirectory
 if ($files) {
-    Process-BackupFiles -SourceDirectory $SourceDirectory -BackupDirectory $BackupDirectory -Files $files
+    Process-BackupFiles -Files $files -SourceDirectory $SourceDirectory -BackupDirectory $BackupDirectory
 }
