@@ -33,7 +33,7 @@ function Get-DiskInformation {
         return $diskInformation
     } catch {
         # Handle potential errors during disk information retrieval
-        Write-Host 'Failed to retrieved disk information'
+        Write-Host 'Failed to retrieve disk information'
         return $null
     }
 }
@@ -70,7 +70,7 @@ function Generate-Log {
         Write-Host 'Successfully logged disk information'
     } catch {
         # Handle potential errors during disk information logging
-        Write-Host 'Failed to logged disk information'
+        Write-Host 'Failed to log disk information'
     }    
 }
 
