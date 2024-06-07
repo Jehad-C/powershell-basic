@@ -6,6 +6,7 @@ param(
 # Function to retrieve disk information
 function Get-DiskInformation {
     param(
+        [Parameter(Mandatory=$true)]
         [int]$FreeSpacePercentageThreshold # Free space percentage threshold
     )
 
@@ -40,7 +41,10 @@ function Get-DiskInformation {
 # Function to generate a log file with disk information
 function Generate-Log {
     param(
+        [Parameter(Mandatory=$true)]
         [array]$DiskInformation, # Disk information object
+
+        [Parameter(Mandatory=$true)]
         [string]$LogPath         # Path to save the log file
     )
 
@@ -48,6 +52,7 @@ function Generate-Log {
 
     # Ensure log directory exists, Remove existing log file if it exists
     New-Item -Path $logDirectory -ItemType Directory -Force | Out-Null
+
     if (Test-Path -Path $LogPath) {
         Remove-Item -Path $LogPath -Confirm:$false
     }
