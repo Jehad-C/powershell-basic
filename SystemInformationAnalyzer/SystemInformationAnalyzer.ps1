@@ -41,6 +41,7 @@ function Generate-Log {
 
     # Ensure log directory exists, Remove existing log file if it exists
     New-Item -Path $logDirectory -ItemType Directory -Force | Out-Null
+
     if (Test-Path -Path $LogPath) {
         Remove-Item -Path $LogPath -Confirm:$false
     }
