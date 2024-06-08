@@ -6,7 +6,10 @@
 # Function to retrieve files from the source directory
 function Get-Files {
     param(
+        [Parameter(Mandatory=$true)]
         [string]$SourceDirectory,      # Source directory
+
+        [Parameter(Mandatory=$true)]
         [string]$DestinationDirectory  # Destination directory
     )
 
@@ -27,8 +30,13 @@ function Get-Files {
 # Function to organize files from the source directory to the destination directory
 function Organize-Files {
     param(
+        [Parameter(Mandatory=$true)]
         [array]$Files,                # Array of files to organize
+
+        [Parameter(Mandatory=$true)]
         [string]$SourceDirectory,     # Source directory
+
+        [Parameter(Mandatory=$true)]
         [string]$DestinationDirectory # Destination directory
     )
 
