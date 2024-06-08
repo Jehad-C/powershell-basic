@@ -1,72 +1,139 @@
 ﻿param(
     [Parameter(Mandatory=$true)]
-    [string]$Name,
-
-    [Parameter(Mandatory=$true)]
-    [string]$Description,
-
-    [Parameter(Mandatory=$true)]
-    [string]$TargetFile,
-
-    [Parameter(Mandatory=$true)]
-    [ValidatePattern("^(0?[0-9]|1[0-2]):[0-5][0-9](AM|PM)$")]
-    [string]$Time,
-
-    [Parameter(Mandatory=$true)]
-    [ValidateSet("Daily", "Weekly", "Monthly")]
-    [string]$Frequency = "Daily",
-
-    [Parameter(Mandatory=$true)]
     [ValidateSet("Create", "Update", "Delete")]
-    [string]$TaskAction = "Create"
+    [string]$Action,          # Action
+
+    [string]$TaskName,        # Task name
+    [string]$TaskDescription, # Task description
+    [string]$TaskTime,        # Task time
+    [string]$TaskFrequency,   # Task frequency
+    [string]$FilePath         # File path
 )
 
-function Create {
-    if (Get-ScheduledTask -TaskName $Name -ErrorAction SilentlyContinue) {
-        throw "Task: $Name already exists"
+# Function to create scheduled task
+function Create-ScheduledTask {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$TaskName,        # Task name
+
+        [Parameter(Mandatory=$true)]
+        [string]$TaskDescription, # Task description
+
+        [Parameter(Mandatory=$true)]
+        [ValidatePattern("^(0?[0-9]|1[0-2]):[0-5][0-9][ ](AM|PM)$")]
+        [string]$TaskTime,        # Task time
+
+        [Parameter(Mandatory=$true)]
+        [ValidateSet("Daily", "Weekly", "Monthly")]
+        [string]$TaskFrequency,   # Task frequency
+
+        [Parameter(Mandatory=$true)]
+        [string]$FilePath         # File path
+    )
+
+    $scheduledTask = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue
+    if ($scheduledTask) {
+        throw "Task name: $TaskName already exists"
     }
 
-    $trigger = switch($Frequency) {
-        "Daily" { New-ScheduledTaskTrigger -At $Time -Daily }
-        "Weekly" { New-ScheduledTaskTrigger -At $Time -Weekly }
-        "Monthly" { New-ScheduledTaskTrigger -At $Time -Monthly }
+    $trigger = switch ($TaskFrequency) {
+        "Daily"   { New-ScheduledTaskTrigger -At $TaskTime -Daily }
+        "Weekly"  { New-ScheduledTaskTrigger -At $TaskTime -Weekly }
+        "Monthly" { New-ScheduledTaskTrigger -At $TaskTime -Monthly }
     }
 
-    $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument "-File $TargetFile"
+    $argument = "-File $FilePath"
+    $action = New-ScheduledTaskAction -Execute "powershell.exe" -Argument $argument
     $settings = New-ScheduledTaskSettingsSet -AllowStartIfOnBatteries -DontStopIfGoingOnBatteries -WakeToRun
 
     try {
-        Register-ScheduledTask -Action $action -Trigger $trigger -TaskName $Name -Description $Description `
-        -TaskPath "workspace" -Settings $settings -User "<User>" -RunLevel "Highest" -Force
+        # Create scheduled task
+        Register-ScheduledTask -Action $action -Trigger $trigger -TaskName $TaskName -Description $TaskDescription `
+        -TaskPath "workspace" -Settings $settings -User "Lenovo-T460" -RunLevel "Highest" -Force
     } catch {
-        throw "Failed to register scheduled task: $Name. Details: $_"
+        # Handle potential errors during scheduled task creation
+        throw "Failed to register scheduled task"
     }
 }
 
-function Remove {
+# Function to delete scheduled task
+function Delete-ScheduledTask {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$TaskName # Task name
+    )
+
     try {
-        Unregister-ScheduledTask -TaskName $Name -Confirm:$false
+        # Delete scheduled task
+        Unregister-ScheduledTask -TaskName $TaskName -Confirm:$false
     } catch {
-        throw "Failed to unregister scheduled task: $Name. Details: $_"
-    }
+        # Handle potential errors during scheduled task deletion
+        throw "Failed to unregister scheduled task"
+    }    
 }
 
-switch($TaskAction) {
+function Update-ScheduledTask {
+    param(
+        [Parameter(Mandatory=$true)]
+        [string]$TaskName,        # Task name
+
+        [string]$TaskDescription, # Task description
+
+        [ValidatePattern("^(0?[0-9]|1[0-2]):[0-5][0-9][ ](AM|PM)$")]
+        [string]$TaskTime,        # Task time
+
+        [ValidateSet("Daily", "Weekly", "Monthly")]
+        [string]$TaskFrequency,   # Task frequency
+
+        [string]$FilePath         # File path
+    )
+
+    # Retrieve scheduled task information
+    $scheduledTask = Get-ScheduledTask -TaskName $TaskName -ErrorAction SilentlyContinue | Select Actions, Description, Triggers
+    if (-not $scheduledTask) {
+        throw "Task name: $TaskName not found"
+    }
+
+    $previousTaskDescription = $scheduledTask.Description
+    $trigger = $scheduledTask.Triggers[0]
+    $previousTaskTime = [DateTime]::Parse($trigger.StartBoundary).ToString("hh:mm tt")
+    $previousTaskFrequency = switch ($trigger) {
+        "MSFT_TaskDailyTrigger"   { "Daily" }
+        "MSFT_TaskWeeklyTrigger"  { "Weekly" }
+        "MSFT_TaskMonthlyTrigger" { "Monthly" }
+    }
+
+    $actions = $scheduledTask.Actions[0] | Select Arguments
+    $previousFilePath = $actions.Arguments.Substring(6)
+
+    $newTaskDescription = if ($TaskDescription) { $TaskDescription } else { $previousTaskDescription }
+    $newTaskTime = if ($TaskTime) { $TaskTime } else { $previousTaskTime }
+    $newTaskFrequency = if ($TaskFrequency) { $TaskFrequency } else { $previousTaskFrequency }
+    $newFilePath = if ($FilePath) { $FilePath } else { $previousFilePath }
+
+    # Delete scheduled task
+    Delete-ScheduledTask -TaskName $TaskName
+
+    # Create scheduled task
+    Create-ScheduledTask -TaskName $TaskName -TaskDescription $newTaskDescription -TaskTime $newTaskTime `
+    -TaskFrequency $newTaskFrequency -FilePath $newFilePath
+}
+
+switch($Action) {
     "Create" {
-        Create
-        Write-Output "Successfully created scheduled task: $Name"
+        Create-ScheduledTask -TaskName $TaskName -TaskDescription $TaskDescription -TaskTime $TaskTime `
+        -TaskFrequency $TaskFrequency -FilePath $FilePath
+        Write-Output "Successfully created scheduled task: $TaskName"
     }
 
     "Update" {
-        Remove
-        Create
-        Write-Output "Successfully updated scheduled task: $Name"
+        Update-ScheduledTask -TaskName $TaskName -TaskDescription $TaskDescription -TaskTime $TaskTime `
+        -TaskFrequency $TaskFrequency -FilePath $FilePath
+        Write-Output "Successfully updated scheduled task: $TaskName"
     }
 
     "Delete" {
-        Remove
-        Write-Output "Successfully deleted scheduled task: $Name"
+        Delete-ScheduledTask -TaskName $TaskName
+        Write-Output "Successfully deleted scheduled task: $TaskName"
     }
-
-    default { throw "Invalid action: $TaskAction. Use Create, Update or Delete" }
 }
